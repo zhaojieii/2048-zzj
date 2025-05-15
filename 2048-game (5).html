@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>2048-by-zzj</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5e6e8;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            color: #5a427d;
+            background-image: radial-gradient(circle at top right, #ffd6e0, #e7c6ff);
+            overflow: hidden;
+        }
+
+        .game-container {
+            background-color: #fff0f3;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
+            margin: 0 auto;
+            backdrop-filter: blur(10px);
+            background-color: rgba(255, 240, 243, 0.8);
+            position: relative;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff4f77;
+            background: linear-gradient(90deg, #ff4f77, #a37eff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .score-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .score-box {
+            background-color: rgba(255, 194, 209, 0.7);
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-align: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .score-label {
+            font-size: 12px;
+            color: #885a64;
+        }
+
+        .score-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #5a427d;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #ff4f77, #ff758c);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex: 1;
+            box-shadow: 0 4px 6px rgba(255, 79, 119, 0.2);
+        }
+
+        button:hover {
+            background: linear-gradient(135deg, #ff758c, #ff4f77);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(255, 79, 119, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            background-color: #ffc2d1;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .tile {
+            aspect-ratio: 1/1;
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            transition: all 0.15s ease-out;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05), 
+                        inset 0 0 0 2px rgba(255, 255, 255, 0.3); /* 添加统一描边 */
+            position: relative;
+            transform: scale(0.95);
+        }
+
+        /* 更丰富的色彩方案 */
+        .tile-2 { background-color: #ffd6e0; color: #885a64; }
+        .tile-4 { background-color: #ffc2d1; color: #7a4d56; }
+        .tile-8 { background-color: #ffb3c6; color: #6b414a; }
+        .tile-16 { background-color: #ff94a9; color: white; }
+        .tile-32 { background-color: #ff859b; color: white; }
+        .tile-64 { background-color: #ff758c; color: white; }
+        .tile-128 { background-color: #ffc8dd; color: #805d6a; font-size: 22px; }
+        .tile-256 { background-color: #ffafcc; color: #735360; font-size: 22px; }
+        .tile-512 { background-color: #ff9eb1; color: white; font-size: 20px; }
+        .tile-1024 { background-color: #bde0fe; color: #4a6fa5; font-size: 18px; }
+        .tile-2048 { background-color: #a2d2ff; color: #39567d; font-size: 18px; }
+        .tile-4096 { background-color: #c8b6ff; color: #5a427d; font-size: 16px; }
+        .tile-8192 { background-color: #bdb2ff; color: #4a3566; font-size: 16px; }
+        .tile-16384 { background-color: #a2d2ff; color: #39567d; font-size: 14px; }
+        .tile-32768 { background-color: #9381ff; color: white; font-size: 14px; }
+        .tile-65536 { background-color: #8479e1; color: white; font-size: 14px; }
+        .tile-131072 { background-color: #725ac1; color: white; font-size: 12px; }
+
+        /* 移动动画类 */
+        .tile-move {
+            transition: transform 0.15s ease-out, left 0.15s ease-out, top 0.15s ease-out;
+        }
+
+        /* 合并动画类 */
+        .tile-merge {
+            animation: merge 0.2s ease-out;
+            z-index: 10;
+        }
+
+        @keyframes merge {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* 新生成方块动画 */
+        .tile-new {
+            animation: pop 0.2s ease-out;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.8); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* 新合成未出现过的数字震动动画 */
+        .tile-first-appear {
+            animation: firstAppear 0.8s ease-in-out;
+        }
+
+        @keyframes firstAppear {
+            0%, 100% { transform: scale(0.95); }
+            25% { transform: scale(1.1) rotate(-5deg); }
+            50% { transform: scale(1.15) rotate(5deg); }
+            75% { transform: scale(1.1) rotate(-3deg); }
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: linear-gradient(135deg, #fff0f3, #ffe5ec);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            max-width: 300px;
+            width: 100%;
+            text-align: center;
+            transform: scale(0.8);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal-title {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #ff4f77, #a37eff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .modal-message {
+            margin-bottom: 20px;
+            color: #5a427d;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-buttons button {
+            background: linear-gradient(135deg, #ff4f77, #ff758c);
+        }
+
+        .modal-buttons button:hover {
+            background: linear-gradient(135deg, #ff758c, #ff4f77);
+        }
+
+        .revive-btn {
+            background: linear-gradient(135deg, #a37eff, #bdb2ff) !important;
+        }
+
+        .revive-btn:hover {
+            background: linear-gradient(135deg, #bdb2ff, #a37eff) !important;
+        }
+
+        /* 弹幕样式 */
+        .danmaku {
+            position: absolute;
+            top: 20%;
+            left: -200px;
+            background: linear-gradient(90deg, rgba(255, 79, 119, 0.8), rgba(163, 126, 255, 0.8));
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            white-space: nowrap;
+            z-index: 20;
+            animation: danmaku 5s linear forwards;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        @keyframes danmaku {
+            0% { left: -200px; }
+            100% { left: calc(100% + 200px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <div class="title">2048-by-zzj</div> <!-- 修改标题 -->
+            <div class="score-container">
+                <div class="score-box">
+                    <div class="score-label">当前分数</div>
+                    <div class="score-value" id="current-score">0</div>
+                </div>
+                <div class="score-box">
+                    <div class="score-label">历史最高</div>
+                    <div class="score-value" id="best-score">0</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="buttons">
+            <button id="restart-btn">重新开始</button>
+        </div>
+        
+        <div class="grid" id="grid"></div>
+    </div>
+
+    <div class="overlay" id="game-over-modal">
+        <div class="modal">
+            <div class="modal-title">游戏结束!</div>
+            <div class="modal-message">
+                你的分数: <span id="final-score">0</span><br>
+                <span id="revive-text">你可以复活一次</span>
+            </div>
+            <div class="modal-buttons">
+                <button id="revive-btn" class="revive-btn">复活</button>
+                <button id="restart-modal-btn">重新开始</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 音频元素 -->
+    <audio id="move-sound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-small-hit-in-a-game-2072.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="merge-sound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-jump-coin-216.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="record-sound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="gameover-sound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-player-losing-or-failing-2042.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        let board = Array(4).fill().map(() => Array(4).fill(0));
+        let score = 0;
+        let bestScore = localStorage.getItem('bestScore') || 0;
+        let canRevive = true;
+        let lastState = null;
+        let isMoving = false; // 移动状态标志
+        let isMusicEnabled = true; // 音乐开关
+        
+        // 记录已出现过的数字
+        let appearedNumbers = new Set();
+        
+        const gridEl = document.getElementById('grid');
+        const currentScoreEl = document.getElementById('current-score');
+        const bestScoreEl = document.getElementById('best-score');
+        const gameOverModal = document.getElementById('game-over-modal');
+        const finalScoreEl = document.getElementById('final-score');
+        const reviveText = document.getElementById('revive-text');
+        
+        // 音频元素
+        const moveSound = document.getElementById('move-sound');
+        const mergeSound = document.getElementById('merge-sound');
+        const recordSound = document.getElementById('record-sound');
+        const gameoverSound = document.getElementById('gameover-sound');
+        
+        bestScoreEl.textContent = bestScore;
+
+        // 初始化游戏
+        function init() {
+            board = Array(4).fill().map(() => Array(4).fill(0));
+            score = 0;
+            canRevive = true;
+            lastState = null;
+            appearedNumbers = new Set([2, 4]); // 初始出现的数字
+            updateScores();
+            addTile();
+            addTile();
+            render();
+        }
+
+        // 添加新方块
+        function addTile() {
+            const emptyCells = [];
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j < 4; j++) {
+                    if (board[i][j] === 0) emptyCells.push([i, j]);
+                }
+            }
+            if (emptyCells.length > 0) {
+                const [x, y] = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+                board[x][y] = Math.random() < 0.9 ? 2 : 4;
+                
+                // 添加新方块动画
+                setTimeout(() => {
+                    render();
+                    const tiles = gridEl.querySelectorAll('.tile');
+                    const index = x * 4 + y;
+                    if (tiles[index]) {
+                        tiles[index].classList.add('tile-new');
+                    }
+                }, 100);
+            }
+        }
+
+        // 渲染棋盘
+        function render() {
+            gridEl.innerHTML = '';
+            board.forEach((row, rowIndex) => {
+                row.forEach((val, colIndex) => {
+                    const tile = document.createElement('div');
+                    const tileClass = val ? `tile-${val}` : '';
+                    tile.className = `tile ${tileClass}`;
+                    tile.textContent = val || '';
+                    tile.style.transform = 'scale(0.95)';
+                    
+                    // 为每个方块添加位置信息
+                    tile.dataset.row = rowIndex;
+                    tile.dataset.col = colIndex;
+                    
+                    // 检查是否是新出现的数字，添加特殊动画
+                    if (val > 0 && recentlyAppearedNumbers.has(val)) {
+                        tile.classList.add('tile-first-appear');
+                    }
+                    
+                    gridEl.appendChild(tile);
+                });
+            });
+            updateScores();
+        }
+
+        // 记录最近出现的新数字
+        let recentlyAppearedNumbers = new Set();
+
+        // 移动逻辑
+        function move(direction) {
+            if (isMoving || isGameOver()) return;
+            isMoving = true;
+            recentlyAppearedNumbers.clear();
+            
+            const prevBoard = JSON.parse(JSON.stringify(board));
+            let moved = false;
+            let mergedPositions = new Set(); // 记录合并位置，避免重复合并
+            let hasMerge = false; // 记录是否有合并操作
+
+            // 处理行/列合并
+            function merge(line) {
+                let newLine = line.filter(n => n !== 0);
+                for (let i = 0; i < newLine.length - 1; i++) {
+                    if (newLine[i] === newLine[i+1] && !mergedPositions.has(i)) {
+                        const mergedValue = newLine[i] * 2;
+                        newLine[i] = mergedValue;
+                        score += mergedValue;
+                        newLine.splice(i+1, 1);
+                        mergedPositions.add(i);
+                        moved = true;
+                        hasMerge = true;
+                        
+                        // 检查是否是新出现的数字
+                        if (!appearedNumbers.has(mergedValue)) {
+                            appearedNumbers.add(mergedValue);
+                            recentlyAppearedNumbers.add(mergedValue);
+                        }
+                    }
+                }
+                while (newLine.length < 4) newLine.push(0);
+                return newLine;
+            }
+
+            // 处理不同方向
+            switch(direction) {
+                case 'left':
+                    board = board.map(row => merge(row));
+                    break;
+                case 'right':
+                    board = board.map(row => merge(row.reverse()).reverse());
+                    break;
+                case 'up':
+                    const transposedUp = transpose(board);
+                    board = transpose(transposedUp.map(col => merge(col)));
+                    break;
+                case 'down':
+                    const transposedDown = transpose(board);
+                    board = transpose(transposedDown.map(col => merge(col.reverse()).reverse()));
+                    break;
+            }
+
+            if (JSON.stringify(board) !== JSON.stringify(prevBoard)) {
+                lastState = { 
+                    board: JSON.parse(JSON.stringify(prevBoard)),
+                    score: score
+                };
+                
+                // 播放移动音效
+                if (isMusicEnabled) {
+                    if (hasMerge) {
+                        mergeSound.currentTime = 0;
+                        mergeSound.play();
+                    } else {
+                        moveSound.currentTime = 0;
+                        moveSound.play();
+                    }
+                }
+                
+                // 应用动画
+                animateMove(prevBoard, () => {
+                    addTile();
+                    render();
+                    isMoving = false;
+                    
+                    // 检查是否破纪录
+                    if (score > bestScore) {
+                        showDanmaku("宝宝好棒！");
+                        if (isMusicEnabled) {
+                            recordSound.currentTime = 0;
+                            recordSound.play();
+                        }
+                    }
+                    
+                    // 检查是否有新数字出现，播放特殊音效
+                    if (recentlyAppearedNumbers.size > 0) {
+                        if (isMusicEnabled) {
+                            recordSound.currentTime = 0;
+                            recordSound.play();
+                        }
+                    }
+                    
+                    if (isGameOver()) {
+                        if (isMusicEnabled) {
+                            gameoverSound.currentTime = 0;
+                            gameoverSound.play();
+                        }
+                        showGameOver();
+                    }
+                });
+            } else {
+                isMoving = false;
+            }
+        }
+
+        // 动画效果
+        function animateMove(prevBoard, callback) {
+            // 先渲染旧状态
+            render();
+            
+            // 等待DOM更新完成
+            setTimeout(() => {
+                // 记录合并位置
+                const mergedPositions = [];
+                for (let i = 0; i < 4; i++) {
+                    for (let j = 0; j < 4; j++) {
+                        if (prevBoard[i][j] !== 0 && board[i][j] !== prevBoard[i][j]) {
+                            // 找到目标位置
+                            let targetRow = i;
+                            let targetCol = j;
+                            
+                            // 根据移动方向找到合并的来源
+                            switch (lastMoveDirection) {
+                                case 'left':
+                                    // 向左合并，来源在右侧
+                                    for (let k = j + 1; k < 4; k++) {
+                                        if (prevBoard[i][k] === prevBoard[i][j]) {
+                                            targetCol = k;
+                                            break;
+                                        }
+                                    }
+                                    break;
+                                case 'right':
+                                    // 向右合并，来源在左侧
+                                    for (let k = j - 1; k >= 0; k--) {
+                                        if (prevBoard[i][k] === prevBoard[i][j]) {
+                                            targetCol = k;
+                                            break;
+                                        }
+                                    }
+                                    break;
+                                case 'up':
+                                    // 向上合并，来源在下方
+                                    for (let k = i + 1; k < 4; k++) {
+                                        if (prevBoard[k][j] === prevBoard[i][j]) {
+                                            targetRow = k;
+                                            break;
+                                        }
+                                    }
+                                    break;
+                                case 'down':
+                                    // 向下合并，来源在上方
+                                    for (let k = i - 1; k >= 0; k--) {
+                                        if (prevBoard[k][j] === prevBoard[i][j]) {
+                                            targetRow = k;
+                                            break;
+                                        }
+                                    }
+                                    break;
+                            }
+                            
+                            if (targetRow !== i || targetCol !== j) {
+                                mergedPositions.push({
+                                    from: { row: targetRow, col: targetCol },
+                                    to: { row: i, col: j }
+                                });
+                            }
+                        }
+                    }
+                }
+                
+                // 再次渲染新状态
+                render();
+                
+                // 应用移动动画
+                const tiles = gridEl.querySelectorAll('.tile');
+                tiles.forEach(tile => {
+                    const row = parseInt(tile.dataset.row);
+                    const col = parseInt(tile.dataset.col);
+                    
+                    // 如果这个位置在之前有值，并且值不同，说明是移动或合并
+                    if (prevBoard[row][col] !== 0 && prevBoard[row][col] !== board[row][col]) {
+                        tile.classList.add('tile-move');
+                        
+                        // 检查是否是合并位置
+                        const isMerge = mergedPositions.some(pos => 
+                            pos.to.row === row && pos.to.col === col
+                        );
+                        
+                        if (isMerge) {
+                            setTimeout(() => {
+                                tile.classList.add('tile-merge');
+                            }, 150);
+                        }
+                    }
+                });
+                
+                // 动画结束后执行回调
+                setTimeout(callback, 250);
+            }, 50);
+        }
+
+        // 记录最后一次移动方向
+        let lastMoveDirection = '';
+
+        // 增强版移动逻辑
+        function moveEnhanced(direction) {
+            lastMoveDirection = direction;
+            move(direction);
+        }
+
+        // 矩阵转置
+        function transpose(matrix) {
+            return matrix[0].map((_, col) => matrix.map(row => row[col]));
+        }
+
+        // 检查游戏是否结束
+        function isGameOver() {
+            // 检查是否有空格
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j < 4; j++) {
+                    if (board[i][j] === 0) return false;
+                }
+            }
+            
+            // 检查是否有可合并的相邻方块
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j < 4; j++) {
+                    const current = board[i][j];
+                    if (j < 3 && board[i][j+1] === current) return false; // 右方
+                    if (i < 3 && board[i+1][j] === current) return false; // 下方
+                }
+            }
+            
+            return true;
+        }
+
+        // 显示游戏结束对话框
+        function showGameOver() {
+            finalScoreEl.textContent = score;
+            
+            if (canRevive) {
+                reviveText.textContent = "你可以复活一次";
+                document.getElementById('revive-btn').style.display = 'block';
+            } else {
+                reviveText.textContent = "你已使用过复活机会";
+                document.getElementById('revive-btn').style.display = 'none';
+            }
+            
+            gameOverModal.classList.add('active');
+        }
+
+        // 更新分数显示
+        function updateScores() {
+            currentScoreEl.textContent = score;
+            if (score > bestScore) {
+                bestScore = score;
+                bestScoreEl.textContent = bestScore;
+                localStorage.setItem('bestScore', bestScore);
+            }
+        }
+
+        // 复活功能
+        function revive() {
+            if (canRevive && lastState) {
+                board = JSON.parse(JSON.stringify(lastState.board));
+                score = lastState.score;
+                canRevive = false;
+                gameOverModal.classList.remove('active');
+                render();
+            }
+        }
+
+        // 显示弹幕
+        function showDanmaku(text) {
+            const danmaku = document.createElement('div');
+            danmaku.className = 'danmaku';
+            danmaku.textContent = text;
+            
+            // 随机位置
+            const topPos = 20 + Math.random() * 30; // 20% - 50%
+            danmaku.style.top = `${topPos}%`;
+            
+            document.body.appendChild(danmaku);
+            
+            // 动画结束后移除
+            setTimeout(() => {
+                danmaku.remove();
+            }, 5000);
+        }
+
+        // 键盘控制
+        document.addEventListener('keydown', (e) => {
+            const keyMap = {
+                37: 'left', 38: 'up', 39: 'right', 40: 'down'
+            };
+            if (keyMap[e.keyCode]) moveEnhanced(keyMap[e.keyCode]);
+        });
+
+        // 触摸控制
+        let touchStartX = 0;
+        let touchStartY = 0;
+        
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        }, { passive: true });
+        
+        document.addEventListener('touchend', (e) => {
+            if (!touchStartX) return;
+            
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            
+            const dx = touchEndX - touchStartX;
+            const dy = touchEndY - touchStartY;
+            
+            // 确定滑动方向（忽略过小的滑动）
+            if (Math.abs(dx) > 30 || Math.abs(dy) > 30) {
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    moveEnhanced(dx > 0 ? 'right' : 'left');
+                } else {
+                    moveEnhanced(dy > 0 ? 'down' : 'up');
+                }
+            }
+            
+            touchStartX = 0;
+            touchStartY = 0;
+        }, { passive: true });
+
+        // 按钮事件
+        document.getElementById('restart-btn').addEventListener('click', init);
+        document.getElementById('restart-modal-btn').addEventListener('click', () => {
+            gameOverModal.classList.remove('active');
+            init();
+        });
+        document.getElementById('revive-btn').addEventListener('click', revive);
+
+        // 初始化游戏
+        init();
+    </script>
+</body>
+</html>    
